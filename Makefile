@@ -1,5 +1,5 @@
 CXX = g++-10
-CXX_FLAGS = -Og -ggdb3 -Wall -Wextra -std=c++2a
+CXX_FLAGS = -Og -ggdb3 -Wall -Wextra -std=c++20
 
 all: bin/main
 
