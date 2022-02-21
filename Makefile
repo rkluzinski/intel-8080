@@ -1,12 +1,18 @@
 CXX = g++-10
 CXX_FLAGS = -Og -ggdb3 -Wall -Wextra -std=c++20
 
-all: bin/main
+all: bin/assembler bin/emulator
 
-bin/main: bin/main.o
+bin/assembler: bin/assembler.o
 	${CXX} ${CXX_FLAGS} -o $@ $^
 
-bin/main.o: src/main.cpp
+bin/emulator: bin/emulator.o
+	${CXX} ${CXX_FLAGS} -o $@ $^
+
+bin/%.o: src/%.cpp
 	${CXX} ${CXX_FLAGS} -c -o $@ $<
 
-.PHONY: all
+clean:
+	rm bin/*
+
+.PHONY: all clean
