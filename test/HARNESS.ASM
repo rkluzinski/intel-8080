@@ -11,7 +11,7 @@ COND:   MOV A,M
         JNZ LOOP
         XCHG
         RET
-LOOP:   OUT 1
+LOOP:   OUT 0
         INX HL
         JMP COND
 INIT:   IN 0

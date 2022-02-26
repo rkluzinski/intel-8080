@@ -63,14 +63,14 @@ void Intel8080Assembler::assembleLine() {
 
     if (code == "cpi") {
         assertOperandCountIs(1);
-        emitByte(0xfc);
+        emitByte(0xfe);
         emitByte(parseImmediate(operand1));
     } else if (code == "hlt") {
         assertOperandCountIs(0);
         emitByte(0x76);
     } else if (code == "in") {
         assertOperandCountIs(1);
-        emitByte(0xd3);
+        emitByte(0xd8);
         emitByte(parseImmediate(operand1));
     } else if (code == "inx") {
         assertOperandCountIs(1);

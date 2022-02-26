@@ -1,6 +1,7 @@
 #ifndef EMULATOR_H
 #define EMULATOR_H
 
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -41,20 +42,31 @@ struct Intel8080 {
 
     bool halted;
 
-    uint8_t memory[0x10000];
+    std::array<uint8_t, 0x10000> memory;
 
-    Intel8080() : BC(0), DE(0), HL(0), PSW(0x0000) {
-        // TODO fix initial PSW values
-        reset();
-    }
+    using InCallback = uint8_t(uint8_t);
+    InCallback *in_callback = nullptr;
+
+    using OutCallback = void(uint8_t, uint8_t);
+    OutCallback *out_callback = nullptr;
+
+    Intel8080() { reset(); }
 
     void reset();
 
     size_t execute(size_t cycle_limit);
     size_t execute();
 
+    size_t debug_execute();
+
   private:
     size_t instruction(uint8_t inst);
+
+    uint8_t and8(uint8_t value);
+    uint8_t sub8(uint8_t value);
+
+    uint8_t readByte();
+    uint16_t readWord();
 
     uint8_t &register8(uint8_t code);
     uint16_t &register16(uint8_t code);
