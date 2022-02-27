@@ -62,8 +62,16 @@ struct Intel8080 {
   private:
     size_t instruction(uint8_t inst);
 
-    uint8_t and8(uint8_t value);
-    uint8_t sub8(uint8_t value);
+    uint8_t add(uint8_t value);
+    uint8_t adc(uint8_t value);
+    uint8_t sub(uint8_t value);
+    uint8_t ana(uint8_t value);
+
+    void setZPS(uint16_t result);
+    uint8_t parity(uint8_t value);
+
+    void pushWord(uint16_t word);
+    uint16_t popWord();
 
     uint8_t readByte();
     uint16_t readWord();

@@ -70,7 +70,7 @@ void Intel8080Assembler::assembleLine() {
         emitByte(0x76);
     } else if (code == "in") {
         assertOperandCountIs(1);
-        emitByte(0xd8);
+        emitByte(0xdb);
         emitByte(parseImmediate(operand1));
     } else if (code == "inx") {
         assertOperandCountIs(1);
@@ -80,6 +80,13 @@ void Intel8080Assembler::assembleLine() {
         assertOperandCountIs(1);
         emitByte(0xc3);
         emitWord(parseAddress(operand1));
+    } else if (code == "ldax") {
+        assertOperandCountIs(1);
+        uint8_t rp = parseRegisterPair(operand1);
+        if (rp != 0 && rp != 1) {
+            error("invalid operand for opcode 'ldax'");
+        }
+        emitByte(0x0a | (rp << 4));
     } else if (code == "mov") {
         assertOperandCountIs(2);
         uint8_t dst = parseRegister(operand1);
@@ -97,7 +104,7 @@ void Intel8080Assembler::assembleLine() {
         emitByte(parseImmediate(operand1));
     } else if (code == "ret") {
         assertOperandCountIs(0);
-        emitByte(0xc5);
+        emitByte(0xc9);
     } else if (code == "xchg") {
         assertOperandCountIs(0);
         emitByte(0xeb);
@@ -197,21 +204,21 @@ uint16_t Intel8080Assembler::parseAddress(std::string token) {
         try {
             int base = 10;
             switch (token.back()) {
-            case 'H':
+            case 'h':
                 base = 16;
                 break;
-            case 'O':
+            case 'o':
                 base = 8;
                 break;
-            case 'B':
+            case 'b':
                 base = 2;
                 break;
             }
             int imm = std::stoi(token, nullptr, base);
-            if (imm < 0 || imm > 255) {
+            if (imm < 0 || imm > 0x10000) {
                 throw std::out_of_range("");
             }
-            return static_cast<uint8_t>(imm);
+            return static_cast<uint16_t>(imm);
         } catch (std::invalid_argument &e) {
             error("could not parse immediate value");
         } catch (std::out_of_range &e) {
@@ -259,6 +266,7 @@ uint8_t Intel8080Assembler::parseImmediate(std::string token) {
     } catch (std::out_of_range &e) {
         error("immedate value is out of range (0-255)");
     }
+    error("internal error");
     return 0;
 }
 

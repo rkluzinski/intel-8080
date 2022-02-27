@@ -28,7 +28,7 @@ uint8_t in_callback(uint8_t port) {
 
 void out_callback(uint8_t port, uint8_t A) {
     if (port == 0) {
-        std::cout << static_cast<char>(A);
+        std::cout << *reinterpret_cast<char *>(&A);
     }
 }
 

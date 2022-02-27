@@ -5,15 +5,13 @@
         CPI 9
         JZ WSTR
         RET
-WSTR:   XCHG
-COND:   MOV A,M
+WSTR:   LDAX DE
         CPI '$'     ; If A != '$' loop else return
         JNZ LOOP
-        XCHG
         RET
 LOOP:   OUT 0
-        INX HL
-        JMP COND
+        INX DE
+        JMP WSTR
 INIT:   IN 0
         CPI 0       ; If A == 0 run COM else halt
         JZ 100H
