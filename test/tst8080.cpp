@@ -43,9 +43,10 @@ int main(int argc, char **argv) {
         load_binary(i8080, argv[2], 0x100);
         i8080.in_callback = in_callback;
         i8080.out_callback = out_callback;
-        i8080.execute();
+        i8080.debug_execute();
+        std::cout << std::endl;
     } catch (std::runtime_error &e) {
-        std::cerr << e.what() << std::endl;
+        std::cout << e.what() << std::endl;
         return 1;
     }
     return 0;

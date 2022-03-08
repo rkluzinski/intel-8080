@@ -2,16 +2,21 @@
         NOP
         NOP
         MOV A,C     ; If C == 9 WRITESTR else return
+        CPI 2
+        JZ PCHR
         CPI 9
-        JZ WSTR
+        JZ PSTR
         RET
-WSTR:   LDAX DE
+PCHR:   MOV A,E
+        OUT 0
+        RET
+PSTR:   LDAX DE
         CPI '$'     ; If A != '$' loop else return
         JNZ LOOP
         RET
 LOOP:   OUT 0
         INX DE
-        JMP WSTR
+        JMP PSTR
 INIT:   IN 0
         CPI 0       ; If A == 0 run COM else halt
         JZ 100H

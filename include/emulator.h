@@ -31,7 +31,7 @@ struct Intel8080 {
                 uint8_t : 1;
                 uint8_t P : 1;
                 uint8_t : 1;
-                uint8_t AC : 1;
+                uint8_t A : 1;
                 uint8_t : 1;
                 uint8_t Z : 1;
                 uint8_t S : 1;
@@ -65,7 +65,10 @@ struct Intel8080 {
     uint8_t add(uint8_t value);
     uint8_t adc(uint8_t value);
     uint8_t sub(uint8_t value);
+    uint8_t sbb(uint8_t value);
     uint8_t ana(uint8_t value);
+    uint8_t xra(uint8_t value);
+    uint8_t ora(uint8_t value);
 
     void setZPS(uint16_t result);
     uint8_t parity(uint8_t value);
