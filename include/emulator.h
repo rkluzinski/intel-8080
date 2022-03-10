@@ -25,7 +25,6 @@ struct Intel8080 {
     RegisterPair(H, L);
     union {
         struct {
-            uint8_t A;
             struct {
                 uint8_t C : 1;
                 uint8_t : 1;
@@ -36,11 +35,13 @@ struct Intel8080 {
                 uint8_t Z : 1;
                 uint8_t S : 1;
             } FLAGS;
+            uint8_t A;
         };
         uint16_t PSW;
     };
 
     bool halted;
+    bool interrupts;
 
     std::array<uint8_t, 0x10000> memory;
 

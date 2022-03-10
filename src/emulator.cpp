@@ -8,8 +8,13 @@
 
 void Intel8080::reset() {
     PC = 0;
-    SP = 0xffff;
+    SP = 0;
+    BC = 0;
+    DE = 0;
+    HL = 0;
+    PSW = 2;
     halted = false;
+    interrupts = true;
 }
 
 size_t Intel8080::execute(size_t cycle_limit) {
@@ -33,14 +38,15 @@ size_t Intel8080::debug_execute() {
     while (!halted) {
         // PC=%%%%(%%) A=%% SZAPC=%%%%% BC=%%%% DE=%%%% HL=%%%%
         std::cerr << std::hex << std::setfill('0') << "PC=" << std::setw(4)
-                  << PC << "(" << std::setw(2) << (int)memory[PC];
+                  << PC << "[" << std::setw(2) << (int)memory[PC] << "]";
         cycles += instruction(memory[PC++]);
-        std::cerr << ") A=" << std::setw(2) << (int)A
+        std::cerr << " A=" << std::setw(2) << (int)A
                   << " SZAPC=" << (int)FLAGS.S << (int)FLAGS.Z << (int)FLAGS.A
                   << (int)FLAGS.P << (int)FLAGS.C << " BC=" << std::setw(4)
                   << BC << " DE=" << std::setw(4) << DE
                   << " HL=" << std::setw(4) << HL << " SP=" << std::setw(4)
-                  << SP << std::endl;
+                  << SP << "[" << std::setw(2) << (int)memory[SP + 1]
+                  << std::setw(2) << (int)memory[SP] << "]" << std::endl;
     }
     return cycles;
 }
@@ -87,7 +93,8 @@ size_t Intel8080::instruction(uint8_t inst) {
             return dst == 6 ? 10 : 5;
         case 0x05:
         case 0x0d:
-            register8(dst) -= 1;
+            // DCR
+            setZPS(--register8(dst));
             return dst == 6 ? 10 : 5;
         case 0x06:
         case 0x0e:
@@ -254,7 +261,8 @@ size_t Intel8080::instruction(uint8_t inst) {
                 return 10;
             } else {
                 // DI
-                break;
+                interrupts = false;
+                return 4;
             }
         case 0x04:
         case 0x0c:
@@ -311,7 +319,8 @@ size_t Intel8080::instruction(uint8_t inst) {
                 return 5;
             } else {
                 // EI
-                break;
+                interrupts = true;
+                return 4;
             }
         case 0x0d:
             // CALL
