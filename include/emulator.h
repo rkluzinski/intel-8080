@@ -63,6 +63,9 @@ struct Intel8080 {
   private:
     size_t instruction(uint8_t inst);
 
+    uint8_t add(uint8_t lhs, uint8_t rhs, bool carry);
+    uint8_t sub(uint8_t lhs, uint8_t rhs, bool carry);
+
     uint8_t add(uint8_t value);
     uint8_t adc(uint8_t value);
     uint8_t sub(uint8_t value);
@@ -71,7 +74,7 @@ struct Intel8080 {
     uint8_t xra(uint8_t value);
     uint8_t ora(uint8_t value);
 
-    void setZPS(uint16_t result);
+    void setZPS(uint8_t result);
     uint8_t parity(uint8_t value);
 
     void pushWord(uint16_t word);

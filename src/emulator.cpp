@@ -89,12 +89,16 @@ size_t Intel8080::instruction(uint8_t inst) {
         case 0x04:
         case 0x0c:
             // INR
-            register8(dst) += 1;
+            ++register8(dst);
+            FLAGS.A = (register8(dst) & 0xf) == 0;
+            setZPS(register8(dst));
             return dst == 6 ? 10 : 5;
         case 0x05:
         case 0x0d:
             // DCR
-            setZPS(--register8(dst));
+            --register8(dst);
+            FLAGS.A = (register8(dst) & 0xf) != 0xf;
+            setZPS(register8(dst));
             return dst == 6 ? 10 : 5;
         case 0x06:
         case 0x0e:
@@ -114,28 +118,29 @@ size_t Intel8080::instruction(uint8_t inst) {
                 A = tmp;
             } else if (inst == 0x27) {
                 // DAA
-                if ((A & 0x0f) > 0x09 || FLAGS.A == 1) {
-                    FLAGS.A = 1;
-                    A += 6;
-                } else {
-                    FLAGS.A = 0;
+                uint8_t adjust = 0;
+                if (FLAGS.A || (A & 0xf) > 9) {
+                    FLAGS.A = (A & 0xf) > 9;
+                    adjust += 6;
                 }
-                if ((A & 0xf0) > 0x90 || FLAGS.C == 1) {
+                if (FLAGS.C || A > 0x99) {
                     FLAGS.C = 1;
-                    A += 0x60;
-                } else {
-                    FLAGS.C = 0;
+                    adjust += 0x60;
                 }
+                A += adjust;
                 setZPS(A);
             } else {
                 // STC
                 FLAGS.C = 1;
             }
             return 4;
-        case 0x09:
-            HL += register16(rp);
-            FLAGS.C = HL < register16(rp) ? 1 : 0;
+        case 0x09: {
+            // DAD
+            uint32_t result = HL + register16(rp);
+            FLAGS.C = result >= 0x10000 ? 1 : 0;
+            HL = result;
             return 10;
+        }
         case 0x0a:
             if (inst == 0x2a) {
                 // LHLD
@@ -226,7 +231,12 @@ size_t Intel8080::instruction(uint8_t inst) {
                 return 5;
             }
         case 0x01:
-            (rp == 3 ? PSW : register16(rp)) = popWord();
+            if (rp == 3) {
+                PSW = popWord();
+                PSW = (PSW & 0xffd5) | 0x0002;
+            } else {
+                register16(rp) = popWord();
+            }
             return 10;
         case 0x02:
         case 0x0a:
@@ -279,7 +289,11 @@ size_t Intel8080::instruction(uint8_t inst) {
                 return 11;
             }
         case 0x05:
-            pushWord(rp == 3 ? PSW : register16(rp));
+            if (rp == 3) {
+                pushWord(PSW);
+            } else {
+                pushWord(register16(rp));
+            }
             return 11;
         case 0x06:
             if (inst == 0xc6) {
@@ -292,6 +306,12 @@ size_t Intel8080::instruction(uint8_t inst) {
                 A = ora(readByte());
             }
             return 7;
+        case 0x07:
+        case 0x0f:
+            // RST
+            pushWord(PC + 1);
+            PC = dst * 8;
+            return 11;
         case 0x09:
             if (inst == 0xc9 || inst == 0xd9) {
                 PC = popWord();
@@ -345,63 +365,56 @@ size_t Intel8080::instruction(uint8_t inst) {
     throw std::runtime_error(os.str());
 }
 
-uint8_t Intel8080::add(uint8_t value) {
-    uint16_t result = A + value;
+uint8_t Intel8080::add(uint8_t lhs, uint8_t rhs, bool carry) {
+    uint16_t result = lhs + rhs + carry;
     FLAGS.C = result > 0xff;
-    FLAGS.A = (A & 0xf) + (value & 0xf) > 0xf;
+    FLAGS.A = ((result ^ lhs ^ rhs) & 0x10) != 0;
     setZPS(result);
-    return result & 0xff;
+    return result;
 }
 
-uint8_t Intel8080::adc(uint8_t value) {
-    uint16_t result = A + value + FLAGS.C;
-    FLAGS.C = result > 0xff;
-    FLAGS.A = (A & 0xf) + (value & 0xf) > 0xf;
-    setZPS(result);
-    return result & 0xff;
+uint8_t Intel8080::sub(uint8_t lhs, uint8_t rhs, bool carry) {
+    uint16_t result = add(lhs, ~rhs, !carry);
+    FLAGS.C = ~FLAGS.C;
+    return result;
 }
 
-uint8_t Intel8080::sub(uint8_t value) {
-    uint16_t result = A + ~value + 1;
-    FLAGS.C = result > 0xff;
-    FLAGS.A = (A & 0xf) + (value & 0xf) > 0xf;
-    setZPS(result);
-    return result & 0xff;
-}
+uint8_t Intel8080::add(uint8_t value) { return add(A, value, 0); }
 
-uint8_t Intel8080::sbb(uint8_t value) {
-    uint16_t result = A + ~(value + FLAGS.C) + 1;
-    FLAGS.C = result > 0xff;
-    FLAGS.A = (A & 0xf) + (value & 0xf) > 0xf;
-    setZPS(result);
-    return result & 0xff;
-}
+uint8_t Intel8080::adc(uint8_t value) { return add(A, value, FLAGS.C); }
+
+uint8_t Intel8080::sub(uint8_t value) { return sub(A, value, 0); }
+
+uint8_t Intel8080::sbb(uint8_t value) { return sub(A, value, FLAGS.C); }
 
 uint8_t Intel8080::ana(uint8_t value) {
     uint16_t result = A & value;
     FLAGS.C = 0;
+    FLAGS.A = ((A | value) & 0x8) != 0;
     setZPS(result);
-    return result & 0xff;
+    return result;
 }
 
 uint8_t Intel8080::xra(uint8_t value) {
     uint16_t result = A ^ value;
     FLAGS.C = 0;
+    FLAGS.A = 0;
     setZPS(result);
-    return result & 0xff;
+    return result;
 }
 
 uint8_t Intel8080::ora(uint8_t value) {
     uint16_t result = A | value;
     FLAGS.C = 0;
+    FLAGS.A = 0;
     setZPS(result);
-    return result & 0xff;
+    return result;
 }
 
-void Intel8080::setZPS(uint16_t result) {
-    FLAGS.Z = (result & 0xff) ? 0 : 1;
+void Intel8080::setZPS(uint8_t result) {
+    FLAGS.Z = result == 0;
     FLAGS.P = ~parity(result);
-    FLAGS.S = (result & 0x80) ? 1 : 0;
+    FLAGS.S = (result & 0x80) != 0;
 }
 
 uint8_t Intel8080::parity(uint8_t value) {
