@@ -19,7 +19,7 @@ The test binaries will be created in the `bin` folder. Run the binaries to run t
 
 Run the `invaders` binary to play Space Invaders. Controls are 'c' to insert coins, enter to start, arrow keys to move and space to fire. Controls for 2P are not bound to any keys.
 
-# References
+## References
 * https://altairclone.com/downloads/manuals/8080%20Programmers%20Manual.pdf
 * https://pastraiser.com/cpu/i8080/i8080_opcodes.html
 * https://altairclone.com/downloads/cpu_tests/
