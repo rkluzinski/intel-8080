@@ -1,0 +1,1 @@
+The four Space Invaders ROMs go in this folder. The build process expects 4 seperate ROM files; `invaders.e`, `invaders.f`, `invaders.g`, `invaders.h`.
