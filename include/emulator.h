@@ -55,10 +55,10 @@ struct Intel8080 {
 
     void reset();
 
-    size_t execute(size_t cycle_limit);
-    size_t execute();
+    size_t execute(size_t cycle_limit = 0);
+    size_t debug_execute(size_t cycle_limit = 0);
 
-    size_t debug_execute();
+    void interrupt(size_t IQR);
 
   private:
     size_t instruction(uint8_t inst);

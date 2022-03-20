@@ -19,23 +19,15 @@ void Intel8080::reset() {
 
 size_t Intel8080::execute(size_t cycle_limit) {
     size_t cycles = 0;
-    while (!halted && cycles < cycle_limit) {
+    while (!halted && (cycle_limit == 0 || cycles < cycle_limit)) {
         cycles += instruction(memory[PC++]);
     }
     return cycles;
 }
 
-size_t Intel8080::execute() {
+size_t Intel8080::debug_execute(size_t cycle_limit) {
     size_t cycles = 0;
-    while (!halted) {
-        cycles += instruction(memory[PC++]);
-    }
-    return cycles;
-}
-
-size_t Intel8080::debug_execute() {
-    size_t cycles = 0;
-    while (!halted) {
+    while (!halted && (cycle_limit == 0 || cycles < cycle_limit)) {
         // PC=%%%%(%%) A=%% SZAPC=%%%%% BC=%%%% DE=%%%% HL=%%%%
         std::cerr << std::hex << std::setfill('0') << "PC=" << std::setw(4)
                   << PC << "[" << std::setw(2) << (int)memory[PC] << "]";
@@ -49,6 +41,13 @@ size_t Intel8080::debug_execute() {
                   << std::setw(2) << (int)memory[SP] << "]" << std::endl;
     }
     return cycles;
+}
+
+void Intel8080::interrupt(size_t IQR) {
+    if (interrupts) {
+        pushWord(PC);
+        PC = (IQR & 0x7) * 8;
+    }
 }
 
 size_t Intel8080::instruction(uint8_t inst) {
