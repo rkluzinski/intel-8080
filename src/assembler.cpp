@@ -2,24 +2,23 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <string>
-#include <unordered_map>
-#include <vector>
 
 #include "assembler.h"
 
-void Intel8080Assembler::assemble() {
+std::vector<uint8_t> Intel8080Assembler::assemble() {
+    std::vector<uint8_t> program;
     while (!is.eof()) {
         try {
-            assembleLine();
+            assembleLine(program);
         } catch (std::runtime_error &e) {
             std::cerr << e.what() << std::endl;
         }
     }
-    fixBranches();
+    fixBranches(program);
+    return program;
 }
 
-void Intel8080Assembler::assembleLine() {
+void Intel8080Assembler::assembleLine(std::vector<uint8_t> &program) {
     std::vector<std::string> tokens = parseLine();
 
     auto it = tokens.cbegin();
@@ -29,7 +28,7 @@ void Intel8080Assembler::assembleLine() {
 
     if (it->back() == ':') {
         auto label = it->substr(0, it->size() - 1);
-        if (!label2addr.emplace(label, pc).second) {
+        if (!label2addr.emplace(label, program.size()).second) {
             error("label '", label, "' already defined");
         }
         it++;
@@ -61,6 +60,12 @@ void Intel8080Assembler::assembleLine() {
         }
     };
 
+    auto emitByte = [&program](uint8_t byte) { program.push_back(byte); };
+    auto emitWord = [&program](uint16_t word) {
+        program.push_back(word & 0xff);
+        program.push_back((word >> 8) & 0xff);
+    };
+
     if (code == "cpi") {
         assertOperandCountIs(1);
         emitByte(0xfe);
@@ -79,7 +84,13 @@ void Intel8080Assembler::assembleLine() {
     } else if (code == "jmp") {
         assertOperandCountIs(1);
         emitByte(0xc3);
-        emitWord(parseAddress(operand1));
+        auto address = parseAddress(operand1);
+        if (address.has_value()) {
+            emitWord(address.value());
+        } else {
+            addr2fix.emplace(operand1, program.size());
+            emitWord(0);
+        }
     } else if (code == "ldax") {
         assertOperandCountIs(1);
         uint8_t rp = parseRegisterPair(operand1);
@@ -123,7 +134,13 @@ void Intel8080Assembler::assembleLine() {
             if (code[0] == 'j') {
                 assertOperandCountIs(1);
                 emitByte(0xc2 | (ccc << 3));
-                emitWord(parseAddress(operand1));
+                auto address = parseAddress(operand1);
+                if (address.has_value()) {
+                    emitWord(address.value());
+                } else {
+                    addr2fix.emplace(operand1, program.size());
+                    emitWord(0);
+                }
                 return;
             }
         }
@@ -131,7 +148,7 @@ void Intel8080Assembler::assembleLine() {
     }
 }
 
-void Intel8080Assembler::fixBranches() {
+void Intel8080Assembler::fixBranches(std::vector<uint8_t> &program) {
     for (const auto [label, loc] : addr2fix) {
         auto it = label2addr.find(label);
         if (it == label2addr.end()) {
@@ -139,8 +156,8 @@ void Intel8080Assembler::fixBranches() {
                       << std::endl;
         } else {
             auto address = it->second;
-            memory[loc] = address & 0xff;
-            memory[loc + 1] = (address >> 8) & 0xff;
+            program[loc] = address & 0xff;
+            program[loc + 1] = (address >> 8) & 0xff;
         }
     }
 }
@@ -199,7 +216,7 @@ std::vector<std::string> Intel8080Assembler::parseLine() {
     return tokens;
 }
 
-uint16_t Intel8080Assembler::parseAddress(std::string token) {
+std::optional<uint16_t> Intel8080Assembler::parseAddress(std::string token) {
     if ('0' < token[0] && token[0] < '9') {
         try {
             int base = 10;
@@ -228,8 +245,7 @@ uint16_t Intel8080Assembler::parseAddress(std::string token) {
 
     auto it = label2addr.find(token);
     if (it == label2addr.end()) {
-        addr2fix.emplace(token, pc);
-        return 0;
+        return std::nullopt;
     }
     return it->second;
 }
@@ -291,13 +307,6 @@ uint8_t Intel8080Assembler::parseRegisterPair(std::string token) {
         error("expected register operand, got '", token, "'");
     }
     return it->second;
-}
-
-void Intel8080Assembler::emitByte(uint8_t byte) { memory[pc++] = byte; }
-
-void Intel8080Assembler::emitWord(uint16_t word) {
-    memory[pc++] = word & 0xff;
-    memory[pc++] = (word >> 8) & 0xff;
 }
 
 template <typename... Ts> void Intel8080Assembler::error(Ts... args) {

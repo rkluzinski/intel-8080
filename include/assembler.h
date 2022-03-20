@@ -2,6 +2,7 @@
 #define ASSEMBLER_H
 
 #include <istream>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -17,32 +18,24 @@ class Intel8080Assembler {
     std::unordered_map<std::string, uint16_t> label2addr;
     std::unordered_map<std::string, uint16_t> addr2fix;
 
-    size_t pc;
     bool had_errors = false;
 
   public:
-    Intel8080Assembler(std::istream &istream, uint8_t *memory_)
-        : is(istream), memory(memory_), line_number(0) {
-        assemble();
-    }
+    Intel8080Assembler(std::istream &istream) : is(istream), line_number(0) {}
 
-    size_t bytesWritten() { return pc; }
+    std::vector<uint8_t> assemble();
     bool hadErrors() { return had_errors; }
 
   private:
-    void assemble();
-    void assembleLine();
-    void fixBranches();
+    void assembleLine(std::vector<uint8_t> &program);
+    void fixBranches(std::vector<uint8_t> &program);
 
     std::vector<std::string> parseLine();
 
-    uint16_t parseAddress(std::string token);
+    std::optional<uint16_t> parseAddress(std::string token);
     uint8_t parseImmediate(std::string token);
     uint8_t parseRegister(std::string token);
     uint8_t parseRegisterPair(std::string token);
-
-    void emitByte(uint8_t byte);
-    void emitWord(uint16_t word);
 
     template <typename... Ts> void error(Ts... args);
 };

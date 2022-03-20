@@ -1,7 +1,9 @@
         JMP INIT
         NOP
         NOP
-        MOV A,C     ; If C == 9 WRITESTR else return
+        NOP             ; 0x0000 top of stack
+        NOP
+        MOV A,C
         CPI 2
         JZ PCHR
         CPI 9
@@ -11,13 +13,13 @@ PCHR:   MOV A,E
         OUT 0
         RET
 PSTR:   LDAX DE
-        CPI '$'     ; If A != '$' loop else return
+        CPI '$'
         JNZ LOOP
         RET
 LOOP:   OUT 0
         INX DE
         JMP PSTR
 INIT:   IN 0
-        CPI 0       ; If A == 0 run COM else halt
+        CPI 0
         JZ 100H
         HLT
